@@ -1,0 +1,29 @@
+
+[OpenGL] FATAL: Failed to create GLFW window!
+0(22) : error C1503: undefined variable "norm"
+[OpenGL] ERROR: Shader compilation failed for shader "shaders/shader.frag"!
+
+Fragment info
+-------------
+0(22) : error C1503: undefined variable "norm"
+(0) : error C2003: incompatible options for link
+[OpenGL] ERROR: Shader program failed!
+
+0(22) : error C1503: undefined variable "norm"
+[OpenGL] ERROR: Shader compilation failed for shader "shaders/shader.frag"!
+
+Fragment info
+-------------
+0(22) : error C1503: undefined variable "norm"
+(0) : error C2003: incompatible options for link
+[OpenGL] ERROR: Shader program failed!
+
+0(28) : error C1503: undefined variable "viewPos"
+[OpenGL] ERROR: Shader compilation failed for shader "shaders/shader.frag"!
+
+Fragment info
+-------------
+0(28) : error C1503: undefined variable "viewPos"
+(0) : error C2003: incompatible options for link
+[OpenGL] ERROR: Shader program failed!
+
