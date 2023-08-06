@@ -117,131 +117,105 @@ GlWindow::~GlWindow()
 }
 
 
-//callbacks are written in the fashion described here
-//https://discourse.glfw.org/t/passing-parameters-to-callbacks/848
-//this took me way too long to find but im so happy
+//callbacks based on the information presented here: https://discourse.glfw.org/t/passing-parameters-to-callbacks/848
 
 void GlWindow::framebufferSizeCallback(GLFWwindow* window, int32_t width, int32_t height)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onFramebufferSizeChange(width, height);
-}
-
-void GlWindow::onFramebufferSizeChange(uint32_t width, uint32_t height)
-{
-	glfwMakeContextCurrent(glfwWindow);
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
+	glfwMakeContextCurrent(glWindowPtr->glfwWindow);
 
 	glViewport(0, 0, width, height);
-	GlWindow::width = width;
-	GlWindow::height = height;
+	glWindowPtr->width = width;
+	glWindowPtr->height = height;
 
-	camera->aspectRatio = (float)GlWindow::width / (float)GlWindow::height;
+	glWindowPtr->camera->aspectRatio = (float)width / (float)height;
 }
 
 void GlWindow::mouseCallback(GLFWwindow* window, double xPosIn, double yPosIn)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onMouseMovement(xPosIn, yPosIn);
-}
-
-void GlWindow::onMouseMovement(double xPosIn, double yPosIn)
-{
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
 	float xPos = (float)xPosIn;
 	float yPos = (float)yPosIn;
 
-	if (firstMouseMovement)
+	if (glWindowPtr->firstMouseMovement)
 	{
-		lastMousePosX = xPos;
-		lastMousePosY = yPos;
-		firstMouseMovement = false;
+		glWindowPtr->lastMousePosX = xPos;
+		glWindowPtr->lastMousePosY = yPos;
+		glWindowPtr->firstMouseMovement = false;
 	}
 
-	float xOffset = xPos - lastMousePosX;
-	float yOffset = lastMousePosY - yPos;
+	float xOffset = xPos - glWindowPtr->lastMousePosX;
+	float yOffset = glWindowPtr->lastMousePosY - yPos;
 
-	lastMousePosX = xPos;
-	lastMousePosY = yPos;
+	glWindowPtr->lastMousePosX = xPos;
+	glWindowPtr->lastMousePosY = yPos;
 
-	GlWindow::camera->processMouse(xOffset, yOffset);
+	glWindowPtr->camera->processMouse(xOffset, yOffset);
 }
 
 void GlWindow::cursorEnterCallback(GLFWwindow* window, int32_t entered)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onCursorEnter(entered);
-}
-
-void GlWindow::onCursorEnter(int32_t entered)
-{
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
 	if (!entered)
 	{
-		firstMouseMovement = true;
+		glWindowPtr->firstMouseMovement = true;
 
-		lastMousePosX = (float)GlWindow::width / 2;
-		lastMousePosY = (float)GlWindow::height / 2;
+		glWindowPtr->lastMousePosX = (float)glWindowPtr->width / 2;
+		glWindowPtr->lastMousePosY = (float)glWindowPtr->height / 2;
 	}
 }
 
 void GlWindow::mouseButtonCallback(GLFWwindow* window, int32_t button, int32_t action, int32_t mods)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onMouseButtonEvent(button, action, mods);
-}
-
-void GlWindow::onMouseButtonEvent(int32_t button, int32_t action, int32_t mods)
-{
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
 	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS)
 	{
-		glfwSetInputMode(GlWindow::glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(glWindowPtr->glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 }
 
 void GlWindow::mouseScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onMouseScrollEvent(xOffset, yOffset);
-}
-
-void GlWindow::onMouseScrollEvent(double xOffset, double yOffset)
-{
-	camera->processMouseScroll((float)yOffset);
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
+	glWindowPtr->camera->processMouseScroll((float)yOffset);
 }
 
 void GlWindow::keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods)
 {
-	GlWindow* obj = (GlWindow*)glfwGetWindowUserPointer(window);
-	obj->onKeyEvent(key, scancode, action, mods);
-}
-
-void GlWindow::onKeyEvent(int32_t key, int32_t scancode, int32_t action, int32_t mods)
-{
-	glfwMakeContextCurrent(glfwWindow);
+	GlWindow* glWindowPtr = (GlWindow*)glfwGetWindowUserPointer(window);
+	
+	glfwMakeContextCurrent(glWindowPtr->glfwWindow);
 
 	if (key == GLFW_KEY_ESCAPE)
 	{
-		glfwSetInputMode(GlWindow::glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		glfwSetInputMode(glWindowPtr->glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
-		firstMouseMovement = true;
+		glWindowPtr->firstMouseMovement = true;
 
-		lastMousePosX = (float)GlWindow::width / 2;
-		lastMousePosY = (float)GlWindow::height / 2;
+		glWindowPtr->lastMousePosX = (float)glWindowPtr->width / 2;
+		glWindowPtr->lastMousePosY = (float)glWindowPtr->height / 2;
 	}
 
 	if (key == GLFW_KEY_ESCAPE && mods == GLFW_MOD_SHIFT && action == GLFW_PRESS)
 	{
-		glfwSetWindowShouldClose(glfwWindow, true);
+		glfwSetWindowShouldClose(glWindowPtr->glfwWindow, true);
 	}
 
 	if (key == GLFW_KEY_MINUS && action == GLFW_PRESS)
 	{
-		if (wireframeMode)
+		if (glWindowPtr->wireframeMode)
 		{
-			wireframeMode = false;
+			glWindowPtr->wireframeMode = false;
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 		else
 		{
-			wireframeMode = true;
+			glWindowPtr->wireframeMode = true;
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
 	}

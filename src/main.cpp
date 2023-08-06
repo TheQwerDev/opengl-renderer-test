@@ -1,46 +1,52 @@
 #include <iostream>
 
-#include "glRenderer.h"
+#include "atlasInstance.h"
 
 int main()
 {
-	glfwInit();
-
-	GlRenderer renderer;
+	AtlasInstance instance;
 
 	GlCamera mainCamera(glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), PERSPECTIVE);
-	GlCamera secondCamera(glm::vec3(3, 0, 0), glm::vec3(0, 1, 0), PERSPECTIVE);
-	GlCamera thirdCamera(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), PERSPECTIVE);
-	GlCamera fourthCamera(glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), ORTHOGRAPHIC);
+	GlCamera secondCamera(glm::vec3(0, 0, 3), glm::vec3(0, 1, 0), PERSPECTIVE);
 
 	mainCamera.farClip = 1000.0f;
 	mainCamera.moveSpeed = 2.5f;
 	mainCamera.constrainEulerAngle = 80.0f;
 
-	secondCamera.fieldOfView = 270;
+	//method 1 for adding windows to the game instance
+	GlWindow* window1 = instance.newWindow(800, 600, "Main window", &mainCamera);
 
-	GlWindow window1(800, 600, "Main window", &mainCamera, renderer.sharedResources);
-	renderer.addWindow(&window1);
+	//method 2 for adding windows to the instance
+	//GlWindow window2(800, 600, "Second window", &secondCamera, instance.getRendererResourcesPtr());
+	//instance.addWindow(&window2);
 
-	//GlWindow window2(300, 768, "Cooler window", &secondCamera, renderer.sharedResources);
-	//renderer.addWindow(&window2);
-	
-	//GlWindow window3(300, 200, "Tiny window", &thirdCamera, renderer.sharedResources);
-	//renderer.addWindow(&window3);
+	//method 1 for adding models to the instance
+	GlModel* model1 = instance.newModel("models/plane/plane.obj");
 
-	//GlWindow window4(420, 240, "Wacky window", &fourthCamera, renderer.sharedResources);
-	//renderer.addWindow(&window4);
+	//method 2 for adding models to the instance
+	GlModel model2("models/backpack/backpack.obj", instance.getRendererResourcesPtr());
+	instance.addModel(&model2); 
 
-	while(!window1.shouldClose())
-		renderer.render();
+	//method 1 for adding game objects to the instance
+	AtlasGameObj* gameObject = instance.newGameObj(glm::vec3(4.0, 0.0, 0.0), glm::vec3(1.0), glm::vec3(-45, -90, 0), model1);
+	AtlasGameObj* gameObject2 = instance.newGameObj(glm::vec3(-4.0, 0.0, 0.0), glm::vec3(0.5), glm::vec3(45, -90, 0), model1);
 
-	renderer.~GlRenderer();
+	//method 2 for adding game objects to the instance
+	AtlasGameObj gameObject3(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0), glm::vec3(0.0, 0.0, 0.0), &model2);
+	instance.addGameObj(&gameObject3);
+
+	gameObject2->model = &model2;
+	gameObject2->setScale(0.5, 0.5, 0.5);
+	gameObject2->setRotation(-45, -45, -45);
+
+	while (!window1->shouldClose())
+		instance.update();
+
+	instance.~AtlasInstance();
 
 	std::cout << "Press any key to continue...\n";
 
 	std::cin.get();
-
-	glfwTerminate();
 
 	return 0;
 }

@@ -44,23 +44,8 @@ GlRenderer::GlRenderer()
 	//initialize resources using the hidden window's context
 	glEnable(GL_DEPTH_TEST);
 
-	vertexBuffer = new GlVertexBuffer(vertices, sizeof(vertices));
-
-	vertexLayout = new GlVertexBufferLayout();
-	vertexLayout->push<float>(3); //vertex position
-	//vertexLayout->push<float>(2); //texture coordinate
-	vertexLayout->push<float>(3); //normal vector direction
-
-	lightVertexLayout = new GlVertexBufferLayout();
-	lightVertexLayout->push<float>(3);
-	lightVertexLayout->push<float>(2);
-
-	vertexBuffer->unbind();
-
 	lightCubeShader = new GlShader("shaders/shader.vert", "shaders/lightCubeFrag.frag");
 	lightingShader = new GlShader("shaders/shader.vert", "shaders/shader.frag");
-	texture = new GlTexture("textures/container.jpg", GL_REPEAT, GL_LINEAR);
-	texture2 = new GlTexture("textures/awesomeface.png", GL_REPEAT, GL_LINEAR);
 
 	glfwMakeContextCurrent(NULL);
 }
@@ -68,11 +53,6 @@ GlRenderer::GlRenderer()
 GlRenderer::~GlRenderer()
 {
 	glfwMakeContextCurrent(NULL);
-
-	for(GlVertexArray* vertexArray : vertexArrays)
-		vertexArray->~GlVertexArray();
-
-	vertexBuffer->~GlVertexBuffer();
 
 	for (GlWindow* window : windows)
 		window->~GlWindow();
@@ -83,15 +63,13 @@ double GlRenderer::getDeltaTime()
 	return deltaTime;
 }
 
-void GlRenderer::render()
+void GlRenderer::render(std::vector<AtlasGameObj*> gameObjects)
 {
 	calculateDeltaTime();
 
 	for(uint32_t i = 0; i < windows.size(); i++)
 	{
 		const auto& window = windows[i];
-		const auto& vertexArray = vertexArrays[i];
-		const auto& lightVertexArray = lightVertexArrays[i];
 
 		glfwMakeContextCurrent(window->glfwWindow);
 
@@ -100,32 +78,41 @@ void GlRenderer::render()
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		texture->bind(0);
-		texture2->bind(1);
-
-		lightingShader->use();
-		//lightingShader->setInt("texture1", 0);
-		//lightingShader->setInt("texture2", 1);
-
-		lightingShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-		lightingShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		lightingShader->setVec3("lightPos", glm::vec3(10 * lightPos.x * sin(glfwGetTime()), lightPos.y, 10 * lightPos.z * cos(glfwGetTime())));
-
 		view = window->camera->getViewMatrix();
 		projection = window->camera->getProjectionMatrix();
 
-		lightingShader->setMat4("view", view);
+		lightingShader->use();
 
-		vertexArray->bind();
+		// directional light
+		lightingShader->setVec3("dirLight.direction", view * glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f));
+		lightingShader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader->setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+		lightingShader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
 
-		for (uint32_t j = 0; j < 10; j++)
+		// spotLight
+		lightingShader->setVec3("spotLight.position", view * glm::vec4(window->camera->position, 1.0f));
+		lightingShader->setVec3("spotLight.direction", view * glm::vec4(window->camera->front, 0.0f));
+		lightingShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+		lightingShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+		lightingShader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+		lightingShader->setFloat("spotLight.constant", 1.0f);
+		lightingShader->setFloat("spotLight.linear", 0.09f);
+		lightingShader->setFloat("spotLight.quadratic", 0.032f);
+		lightingShader->setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
+		lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+
+		lightingShader->setFloat("material.shininess", 32.0f);
+
+		for (AtlasGameObj* gameObject : gameObjects)
 		{
-		    model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[j]);
+			model = glm::mat4(1.0);
+			model = glm::translate(model, gameObject->position);
 
-			float angle = 20.0f * j;
+			model = glm::rotate(model, glm::radians(gameObject->rotation.z), glm::vec3(0.0, 0.0, 1.0));
+			model = glm::rotate(model, glm::radians(gameObject->rotation.x), glm::vec3(1.0, 0.0, 0.0));
+			model = glm::rotate(model, glm::radians(gameObject->rotation.y), glm::vec3(0.0, 1.0, 0.0));
 
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			model = glm::scale(model, gameObject->scale);
 
 			mv = view * model;
 			mvp = projection * mv;
@@ -134,25 +121,8 @@ void GlRenderer::render()
 			lightingShader->setMat4("mv", mv);
 			lightingShader->setMat4("mvp", mvp);
 
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			gameObject->model->draw(lightingShader, i);
 		}
-
-		vertexArray->unbind();
-
-		//light cube
-		lightCubeShader->use();
-
-		lightVertexArray->bind();
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(10 * lightPos.x * sin(glfwGetTime()), lightPos.y, 10 * lightPos.z * cos(glfwGetTime())));
-
-		mvp = projection * view * model;
-		
-		lightCubeShader->setMat4("mvp", mvp);
-
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
-		lightVertexArray->unbind();
 
 		glfwSwapBuffers(window->glfwWindow);
 
@@ -160,22 +130,35 @@ void GlRenderer::render()
 	}
 }
 
-void GlRenderer::addWindow(GlWindow* window)
+void GlRenderer::addWindow(GlWindow* window, std::vector<AtlasGameObj*> gameObjects)
 {
 	glfwMakeContextCurrent(window->glfwWindow);
 
 	glEnable(GL_DEPTH_TEST);
 
-	//we need to create a new vertex array for every single window that we add
-	vertexArrays.push_back(new GlVertexArray());
-	vertexArrays[vertexArrays.size() - 1]->addBuffer(*vertexBuffer, *vertexLayout);
-
-	lightVertexArrays.push_back(new GlVertexArray());
-	lightVertexArrays[lightVertexArrays.size() - 1]->addBuffer(*vertexBuffer, *vertexLayout);
+	//we need to create new vertex arrays for every single window that we add
+	for (GlModel* model : models)
+	{
+		model->createVertexArrays();
+	}
 
 	windows.push_back(window);
 
 	glfwMakeContextCurrent(NULL);
+}
+
+void GlRenderer::addModel(GlModel* model)
+{
+	//create vertex arrays for the model in every single window context
+	for (GlWindow* window : windows)
+	{
+		glfwMakeContextCurrent(window->glfwWindow);
+		model->createVertexArrays();
+	}
+	
+	glfwMakeContextCurrent(NULL);
+
+	models.push_back(model);
 }
 
 void GlRenderer::calculateDeltaTime()

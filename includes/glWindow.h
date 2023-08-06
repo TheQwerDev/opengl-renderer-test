@@ -15,15 +15,6 @@ public:
 	GlWindow(const uint32_t& width, const uint32_t& height, const char* name, GlCamera* camera, GLFWwindow* rendererSharedResources, bool wireframeMode = false);
 	~GlWindow();
 
-	void onFramebufferSizeChange(uint32_t width, uint32_t height);
-
-	void onMouseMovement(double xPosIn, double yPosIn);
-	void onCursorEnter(int32_t entered);
-	void onMouseButtonEvent(int32_t button, int32_t action, int32_t mods);
-	void onMouseScrollEvent(double xOffset, double yOffset);
-
-	void onKeyEvent(int32_t key, int32_t scancode, int32_t action, int32_t mods);
-
 	uint32_t width;
     uint32_t height;
 
